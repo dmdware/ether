@@ -147,18 +147,26 @@ float vol3f(v3f a, v3f b, v3f c, v3f d)
 
 float sa3f(v3f a, v3f b, v3f c)
 {
-	v3f ab;
-	v3f ac;
-	float f;
+	float s, a1, a2, a3;
+	v3f ab, ac, bc;
+
 	v3fsub(&ab, a, b);
 	v3fsub(&ac, a, c);
-	f = mag3f(ab);
-	return 0.5 * f * (1.0 - dot3f(ab, ac)/f)*f; 
+	v3fsub(&bc, b, c);
+
+	a1 = mag3f(ab);
+	a2 = mag3f(ac);
+	a3 = mag3f(bc);
+
+	s = (a1 + a2 + a3) / 2.0f;
+
+	return sqrtf(s * (s - a1) * (s - a2) * (s - a3));
 }
 
 v3f toxy(v3f vi, float wx, float wy, v3f p[8])
 {
 	float v[12];
+	int i;
 	v[0] = vol3f(vi, p[0], p[1], p[2]) / sa3f(p[1], p[2], p[0]);
 	v[1] = vol3f(vi, p[0], p[2], p[3]) / sa3f(p[0], p[3], p[2]);
 	v[2] = vol3f(vi, p[1], p[2], p[6]) / sa3f(p[1], p[2], p[6]);
@@ -171,8 +179,11 @@ v3f toxy(v3f vi, float wx, float wy, v3f p[8])
 	v[9] = vol3f(vi, p[0], p[1], p[4]) / sa3f(p[0], p[1], p[4]);
 	v[10] = vol3f(vi, p[5], p[6], p[7]) / sa3f(p[5], p[6], p[7]);
 	v[11] = vol3f(vi, p[4], p[5], p[7]) / sa3f(p[4], p[5], p[7]);
-	vi.x = wx * (v[8] + v[9]) / (v[8] + v[9] + v[4] + v[5]);
-	vi.y = wy * (v[6] + v[7]) / (v[6] + v[7] + v[2] + v[3]);
+	for (i = 0; i < 12; i++)
+		fprintf(g_applog, "[%f,%f,%f]v[%d]=%f\r\n", vi.x, vi.y, vi.z, i, v[i]);
+	fflush(g_applog);
+	vi.x = wx * (v[4] + v[5]) / (v[8] + v[9] + v[4] + v[5]);
+	vi.y = wy * (v[2] + v[3]) / (v[6] + v[7] + v[2] + v[3]);
 	vi.z = ((v[10] + v[11]) / (v[0] + v[1] + v[10] + v[11]));
 	return vi;
 }
@@ -207,9 +218,10 @@ void linexy(v3f f, v3f t, int wx, int wy, char* im, float r, float g, float b)
 	}
 }
 
-#define NP	1000
-#define NPX	10
-v3f p[NP];
+#define NPX	11
+#define NP	(NPX*NPX*NPX)
+static v3f *p = NULL;
+static v3f *pvv = NULL;
 char sasd = 0;
 
 void drawscene(float* proj, float* viewmat, float* modelmat, float* modelviewinv, 
@@ -232,9 +244,16 @@ void drawscene(float* proj, float* viewmat, float* modelmat, float* modelviewinv
 	static int ff = 0;
 	v3f xy;
 	char fm[123];
+	float ta;
 
 #define WX		512
 #define WY		512
+
+	if (!p)
+	{
+		p = (v3f*)malloc(sizeof(v3f)*NP);
+		pvv = (v3f*)malloc(sizeof(v3f)*NP);
+	}
 
 	ff++;
 	im = (char*)malloc(sizeof(char)*WX*WY * 3);
@@ -255,6 +274,8 @@ void drawscene(float* proj, float* viewmat, float* modelmat, float* modelviewinv
 			p[i].y = (i / NPX) % NPX;
 			p[i].z = (i / NPX / NPX);
 		}
+
+		memset(pvv, 0, sizeof(float)*NP * 3);
 	}
 
 	for (i = 0; i < WX*WY * 3; ++i)
@@ -265,7 +286,7 @@ void drawscene(float* proj, float* viewmat, float* modelmat, float* modelviewinv
 	cv.z = NPX / 2;
 	cv2.x = NPX / 2;
 	cv2.y = NPX / 4;
-	cv2.z = NPX / 3;
+	cv2.z = 0;
 
 	mfset(&mvp, viewmat);
 	mfpostmult(&mvp, (mf*)proj);
@@ -289,7 +310,7 @@ void drawscene(float* proj, float* viewmat, float* modelmat, float* modelviewinv
 	g_camf.up.x = 0;
 	g_camf.up.y = 1;
 	g_camf.up.z = 0;
-	g_camf.view.x = -10;
+	g_camf.view.x = 0;
 	g_camf.view.y = 0;
 	g_camf.view.z = 0;
 
@@ -301,10 +322,15 @@ void drawscene(float* proj, float* viewmat, float* modelmat, float* modelviewinv
 #define POS		0
 #define NEG		1
 
+#define FOV		90
+
 	vvvv[X][NEARP][POS] = g_camf.strafe;
 	v3fsub(&vvvv[Z][NEARP][POS], g_camf.view, g_camf.pos);
 	vvvv[Z][NEARP][POS] = norm3f(vvvv[Z][NEARP][POS]);
 	vvvv[Y][NEARP][POS] = norm3f(cross3f(vvvv[X][NEARP][POS], vvvv[Z][NEARP][POS]));
+	ta = tan(FOV / 180.0f * 3.14159f / 2.0f);
+	v3fmul(&vvvv[Y][NEARP][POS], vvvv[Y][NEARP][POS], WX / WY * ta);
+	v3fmul(&vvvv[X][NEARP][POS], vvvv[X][NEARP][POS], ta);
 
 	v3fmul(&vvvv[X][FARP][POS], vvvv[X][NEARP][POS], MAX_DISTANCE - MIN_DISTANCE);
 	v3fmul(&vvvv[Y][FARP][POS], vvvv[Y][NEARP][POS], MAX_DISTANCE - MIN_DISTANCE);
@@ -333,6 +359,12 @@ void drawscene(float* proj, float* viewmat, float* modelmat, float* modelviewinv
 	v3fadd(&pv[6], pv[6], vvvv[Z][NEARP][POS]);
 	v3fadd(&pv[7], vvvv[X][NEARP][NEG], vvvv[Y][NEARP][NEG]);
 	v3fadd(&pv[7], pv[7], vvvv[Z][NEARP][POS]);
+
+	pv[0].x -= 1000;
+	pv[0].y += 50;
+	pv[1].y += 100;
+	pv[1].z += 100000;
+	pv[2].z -= 100;
 
 #undef X
 #undef Y
@@ -372,6 +404,7 @@ void drawscene(float* proj, float* viewmat, float* modelmat, float* modelviewinv
 		for (y = 0; y < NPX; ++y)
 		{
 			for (z = 0; z < NPX; ++z)
+			//z = 0;
 			{
 				v[0] = p[z*NPX*NPX + y*NPX + x];
 				//xy = toxy(v[0], WX, WY, pv);
@@ -391,32 +424,36 @@ void drawscene(float* proj, float* viewmat, float* modelmat, float* modelviewinv
 #endif
 				v3fsub(&v[0], v[0], cv);
 
-				v3fmul(&v[0], v[0], 10.0f);
+				v3fmul(&v[0], v[0], 0.1f/(NPX/10));
+				v[0] = toxy(v[0], WX, WY, pv);
 
 				if (z + 1 < NPX)
 				{
 					v[1] = p[(z + 1)*NPX*NPX + y*NPX + x];
-					//v3fsub(&v[1], v[1], cv);
-					//v3fmul(&v[1], v[1], 10.0f);
-					linexy(v[0], v[1], WX, WY, im, 1, 0, 0);
+					v3fsub(&v[1], v[1], cv);
+					v3fmul(&v[1], v[1], 0.1f/(NPX/10));
+					v[1] = toxy(v[1], WX, WY, pv);
+					linexy(v[0], v[1], WX, WY, im, 1.0f*z/NPX, 0.5, 0.5);
 					//glVertexPointer(3, GL_FLOAT, 0, v);
 					//glDrawArrays(GL_LINES, 0, 2);
 				}
 				if (x + 1 < NPX)
 				{
 					v[1] = p[z*NPX*NPX + y*NPX + x+1];
-					//v3fsub(&v[1], v[1], cv);
-					//v3fmul(&v[1], v[1], 10.0f);
-					linexy(v[0], v[1], WX, WY, im, 0, 1, 0);
+					v3fsub(&v[1], v[1], cv);
+					v3fmul(&v[1], v[1], 0.1f/(NPX/10));
+					v[1] = toxy(v[1], WX, WY, pv);
+					linexy(v[0], v[1], WX, WY, im, 0.5, 1.0f*x / NPX, 0.5);
 					//glVertexPointer(3, GL_FLOAT, 0, v);
 					//glDrawArrays(GL_LINES, 0, 2);
 				}
 				if (y + 1 < NPX)
 				{
 					v[1] = p[z*NPX*NPX + (y+1)*NPX + x];
-					//v3fsub(&v[1], v[1], cv);
-					//v3fmul(&v[1], v[1], 10.0f);
-					linexy(v[0], v[1], WX, WY, im, 0, 0, 1);
+					v3fsub(&v[1], v[1], cv);
+					v3fmul(&v[1], v[1], 0.1f/(NPX/10));
+					v[1] = toxy(v[1], WX, WY, pv);
+					linexy(v[0], v[1], WX, WY, im, 0.5, 0.5, 1.0f*y / NPX);
 					//glVertexPointer(3, GL_FLOAT, 0, v);
 					//glDrawArrays(GL_LINES, 0, 2);
 				}
@@ -432,13 +469,13 @@ void drawscene(float* proj, float* viewmat, float* modelmat, float* modelviewinv
 
 	//glVertexPointer(3, GL_FLOAT, 0, v);
 	//glDrawArrays(GL_TRIANGLES, 0, 3);
-	v[0].x = -5 * 10;
-	v[0].y = 0;
-	v[0].z = 0;
-	v[1].x = 5 * 10;
-	v[1].y = 0;
-	v[1].z = 0;
-	linexy(v[0], v[1], WX, WY, im, 1, 1, 1);
+	//v[0].x = -5 * 10;
+	//v[0].y = 0;
+	//v[0].z = 0;
+	//v[1].x = 5 * 10;
+	//v[1].y = 0;
+	//v[1].z = 0;
+	//linexy(v[0], v[1], WX, WY, im, 1, 1, 1);
 
 	sprintf(fm, "%d.png", ff);
 	savepng(fm, &pm);
@@ -449,13 +486,17 @@ void drawscene(float* proj, float* viewmat, float* modelmat, float* modelviewinv
 	{
 		v3fsub(&dv, cv, p[i]);
 		d = mag3f(dv);
-		v3fmul(&vv, dv, 0.01 / (d*d*d));
-		//v3fadd(&p[i], p[i], vv);
+		v3fmul(&vv, dv, 0.0001 / (d*d*d));
+		v3fadd(&p[i], p[i], vv);
+		//v3fadd(&pvv[i], pvv[i], vv);
 
 		v3fsub(&dv, cv2, p[i]);
 		d = mag3f(dv);
-		v3fmul(&vv, dv, 0.01 / (d*d*d));
-		//v3fadd(&p[i], p[i], vv);
+		v3fmul(&vv, dv, 0.0001 / (d*d*d));
+		v3fadd(&p[i], p[i], vv);
+		//v3fadd(&pvv[i], pvv[i], vv);
+
+		v3fadd(&p[i], p[i], pvv[i]);
 	}
 
 	//endsh();
