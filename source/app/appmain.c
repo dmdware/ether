@@ -166,7 +166,6 @@ float sa3f(v3f a, v3f b, v3f c)
 v3f toxy(v3f vi, float wx, float wy, v3f p[8])
 {
 	float v[12];
-	int i;
 	v[0] = vol3f(vi, p[0], p[1], p[2]) / sa3f(p[1], p[2], p[0]);
 	v[1] = vol3f(vi, p[0], p[2], p[3]) / sa3f(p[0], p[3], p[2]);
 	v[2] = vol3f(vi, p[1], p[2], p[6]) / sa3f(p[1], p[2], p[6]);
@@ -179,9 +178,6 @@ v3f toxy(v3f vi, float wx, float wy, v3f p[8])
 	v[9] = vol3f(vi, p[0], p[1], p[4]) / sa3f(p[0], p[1], p[4]);
 	v[10] = vol3f(vi, p[5], p[6], p[7]) / sa3f(p[5], p[6], p[7]);
 	v[11] = vol3f(vi, p[4], p[5], p[7]) / sa3f(p[4], p[5], p[7]);
-	for (i = 0; i < 12; i++)
-		fprintf(g_applog, "[%f,%f,%f]v[%d]=%f\r\n", vi.x, vi.y, vi.z, i, v[i]);
-	fflush(g_applog);
 	vi.x = wx * (v[4] + v[5]) / (v[8] + v[9] + v[4] + v[5]);
 	vi.y = wy * (v[2] + v[3]) / (v[6] + v[7] + v[2] + v[3]);
 	vi.z = ((v[10] + v[11]) / (v[0] + v[1] + v[10] + v[11]));
@@ -218,10 +214,13 @@ void linexy(v3f f, v3f t, int wx, int wy, char* im, float r, float g, float b)
 	}
 }
 
-#define NPX	11
+#define NPX	4
 #define NP	(NPX*NPX*NPX)
 static v3f *p = NULL;
 static v3f *pvv = NULL;
+static v3f *pva = NULL;
+static float *pvl = NULL;
+static v3f *pvf = NULL;
 char sasd = 0;
 
 void drawscene(float* proj, float* viewmat, float* modelmat, float* modelviewinv, 
@@ -253,6 +252,9 @@ void drawscene(float* proj, float* viewmat, float* modelmat, float* modelviewinv
 	{
 		p = (v3f*)malloc(sizeof(v3f)*NP);
 		pvv = (v3f*)malloc(sizeof(v3f)*NP);
+		pva = (v3f*)malloc(sizeof(v3f)*NP);
+		pvf = (v3f*)malloc(sizeof(v3f)*NP);
+		pvl = (float*)malloc(sizeof(float)*NP*2);
 	}
 
 	ff++;
@@ -276,6 +278,29 @@ void drawscene(float* proj, float* viewmat, float* modelmat, float* modelviewinv
 		}
 
 		memset(pvv, 0, sizeof(float)*NP * 3);
+		memset(pva, 0, sizeof(float)*NP * 3);
+		memset(pvf, 0, sizeof(float)*NP * 3);
+
+		for (x = 0; x < NPX - 1; ++x)
+		{
+			for (y = 0; y < NPX - 1; ++y)
+			{
+				for (z = 0; z < NPX - 1; ++z)
+				{
+					pvl[(z*NPX*NPX + y*NPX + x) * 2] = vol3f(
+						p[z*NPX*NPX + y*NPX + x],
+						p[(z + 1)*NPX*NPX + y*NPX + x],
+						p[z*NPX*NPX + (y + 1)*NPX + x],
+						p[z*NPX*NPX + y*NPX + (x + 1)]);
+
+					pvl[(z*NPX*NPX + y*NPX + x) * 2 + 1] = vol3f(
+						p[(z + 1)*NPX*NPX + (y + 1)*NPX + (x + 1)],
+						p[(z + 1)*NPX*NPX + y*NPX + x],
+						p[z*NPX*NPX + (y + 1)*NPX + x],
+						p[z*NPX*NPX + y*NPX + (x + 1)]);
+				}
+			}
+		}
 	}
 
 	for (i = 0; i < WX*WY * 3; ++i)
@@ -360,12 +385,6 @@ void drawscene(float* proj, float* viewmat, float* modelmat, float* modelviewinv
 	v3fadd(&pv[7], vvvv[X][NEARP][NEG], vvvv[Y][NEARP][NEG]);
 	v3fadd(&pv[7], pv[7], vvvv[Z][NEARP][POS]);
 
-	pv[0].x -= 1000;
-	pv[0].y += 50;
-	pv[1].y += 100;
-	pv[1].z += 100000;
-	pv[2].z -= 100;
-
 #undef X
 #undef Y
 #undef Z
@@ -399,11 +418,11 @@ void drawscene(float* proj, float* viewmat, float* modelmat, float* modelviewinv
 
 	glUniform4f(s->slot[SSLOT_COLOR], 1, 1, 1, 1);
 
-	for (x = 0; x < NPX; ++x)
+	for (x = 0; x < NPX - 1; ++x)
 	{
-		for (y = 0; y < NPX; ++y)
+		for (y = 0; y < NPX - 1; ++y)
 		{
-			for (z = 0; z < NPX; ++z)
+			for (z = 0; z < NPX - 1; ++z)
 			//z = 0;
 			{
 				v[0] = p[z*NPX*NPX + y*NPX + x];
@@ -424,34 +443,34 @@ void drawscene(float* proj, float* viewmat, float* modelmat, float* modelviewinv
 #endif
 				v3fsub(&v[0], v[0], cv);
 
-				v3fmul(&v[0], v[0], 0.1f/(NPX/10));
+				v3fmul(&v[0], v[0], 0.1f/(NPX/(float)10));
 				v[0] = toxy(v[0], WX, WY, pv);
 
-				if (z + 1 < NPX)
+				//if (z + 1 < NPX)
 				{
 					v[1] = p[(z + 1)*NPX*NPX + y*NPX + x];
 					v3fsub(&v[1], v[1], cv);
-					v3fmul(&v[1], v[1], 0.1f/(NPX/10));
+					v3fmul(&v[1], v[1], 0.1f/(NPX/(float)10));
 					v[1] = toxy(v[1], WX, WY, pv);
 					linexy(v[0], v[1], WX, WY, im, 1.0f*z/NPX, 0.5, 0.5);
 					//glVertexPointer(3, GL_FLOAT, 0, v);
 					//glDrawArrays(GL_LINES, 0, 2);
 				}
-				if (x + 1 < NPX)
+				//if (x + 1 < NPX)
 				{
 					v[1] = p[z*NPX*NPX + y*NPX + x+1];
 					v3fsub(&v[1], v[1], cv);
-					v3fmul(&v[1], v[1], 0.1f/(NPX/10));
+					v3fmul(&v[1], v[1], 0.1f/(NPX/(float)10));
 					v[1] = toxy(v[1], WX, WY, pv);
 					linexy(v[0], v[1], WX, WY, im, 0.5, 1.0f*x / NPX, 0.5);
 					//glVertexPointer(3, GL_FLOAT, 0, v);
 					//glDrawArrays(GL_LINES, 0, 2);
 				}
-				if (y + 1 < NPX)
+				//if (y + 1 < NPX)
 				{
 					v[1] = p[z*NPX*NPX + (y+1)*NPX + x];
 					v3fsub(&v[1], v[1], cv);
-					v3fmul(&v[1], v[1], 0.1f/(NPX/10));
+					v3fmul(&v[1], v[1], 0.1f/(NPX/(float)10));
 					v[1] = toxy(v[1], WX, WY, pv);
 					linexy(v[0], v[1], WX, WY, im, 0.5, 0.5, 1.0f*y / NPX);
 					//glVertexPointer(3, GL_FLOAT, 0, v);
@@ -481,23 +500,247 @@ void drawscene(float* proj, float* viewmat, float* modelmat, float* modelviewinv
 	savepng(fm, &pm);
 	free(im);
 
+#if 0
+	fprintf(g_applog, "v:%f  v2:%f    xy%f,%f,%f\r\n", 
+		vol3f(
+			p[(NPX / 2 + 2)*NPX*NPX + (NPX / 2 + 2)*NPX + (NPX / 2 + 2)],
+			p[(NPX / 2 + 3)*NPX*NPX + (NPX / 2 + 2)*NPX + (NPX / 2 + 2)],
+			p[(NPX / 2 + 2)*NPX*NPX + (NPX / 2 + 3)*NPX + (NPX / 2 + 2)],
+			p[(NPX / 2 + 2)*NPX*NPX + (NPX / 2 + 2)*NPX + (NPX / 2 + 3)]),
+		vol3f(
+			p[(NPX / 2 + 3)*NPX*NPX + (NPX / 2 + 3)*NPX + (NPX / 2 + 3)],
+			p[(NPX / 2 + 4)*NPX*NPX + (NPX / 2 + 3)*NPX + (NPX / 2 + 3)],
+			p[(NPX / 2 + 3)*NPX*NPX + (NPX / 2 + 4)*NPX + (NPX / 2 + 3)],
+			p[(NPX / 2 + 3)*NPX*NPX + (NPX / 2 + 3)*NPX + (NPX / 2 + 4)]),
+		p[(NPX / 2 + 2)*NPX*NPX + (NPX / 2 + 2)*NPX + (NPX / 2 + 2)].x,
+		p[(NPX / 2 + 2)*NPX*NPX + (NPX / 2 + 2)*NPX + (NPX / 2 + 2)].y,
+		p[(NPX / 2 + 2)*NPX*NPX + (NPX / 2 + 2)*NPX + (NPX / 2 + 2)].z);
+	fflush(g_applog);
+#endif
 
+#if 0
 	for (i = 0; i < NP; ++i)
 	{
 		v3fsub(&dv, cv, p[i]);
 		d = mag3f(dv);
 		v3fmul(&vv, dv, 0.0001 / (d*d*d));
-		v3fadd(&p[i], p[i], vv);
-		//v3fadd(&pvv[i], pvv[i], vv);
+		//v3fadd(&p[i], p[i], vv);
+		v3fadd(&pvv[i], pvv[i], vv);
 
 		v3fsub(&dv, cv2, p[i]);
 		d = mag3f(dv);
 		v3fmul(&vv, dv, 0.0001 / (d*d*d));
-		v3fadd(&p[i], p[i], vv);
+		//v3fadd(&p[i], p[i], vv);
 		//v3fadd(&pvv[i], pvv[i], vv);
 
 		v3fadd(&p[i], p[i], pvv[i]);
 	}
+#else
+	i = -1;
+	d = -1;
+	for (x = 0; x < NPX - 1; ++x)
+	{
+		for (y = 0; y < NPX - 1; ++y)
+		{
+			for (z = 0; z < NPX - 1; ++z)
+				//z = 0;
+			{
+				ta = (
+					vol3f(
+					cv,
+					p[(z + 1)*NPX*NPX + y*NPX + x],
+					p[z*NPX*NPX + (y + 1)*NPX + x],
+					p[z*NPX*NPX + y*NPX + (x + 1)]) +
+					vol3f(
+						p[z*NPX*NPX + y*NPX + x],
+						cv,
+						p[z*NPX*NPX + (y + 1)*NPX + x],
+						p[z*NPX*NPX + y*NPX + (x + 1)]) +
+					vol3f(
+						p[z*NPX*NPX + y*NPX + x],
+						p[(z + 1)*NPX*NPX + y*NPX + x],
+						cv,
+						p[z*NPX*NPX + y*NPX + (x + 1)]) +
+					vol3f(
+						p[z*NPX*NPX + y*NPX + x],
+						p[(z + 1)*NPX*NPX + y*NPX + x],
+						p[z*NPX*NPX + (y + 1)*NPX + x],
+						cv)
+					) /
+					vol3f(
+						p[z*NPX*NPX + y*NPX + x],
+						p[(z + 1)*NPX*NPX + y*NPX + x],
+						p[z*NPX*NPX + (y + 1)*NPX + x],
+						p[z*NPX*NPX + y*NPX + (x + 1)]);
+
+				if (i < 0 || ta < d)
+				{
+					i = (z*NPX*NPX + y*NPX + x) * 2;
+					d = ta;
+				}
+
+				ta = (
+					vol3f(
+					cv,
+					p[(z + 1)*NPX*NPX + y*NPX + x],
+					p[z*NPX*NPX + (y + 1)*NPX + x],
+					p[z*NPX*NPX + y*NPX + (x + 1)]) +
+					vol3f(
+						p[(z+1)*NPX*NPX + (y+1)*NPX + (x+1)],
+						cv,
+						p[z*NPX*NPX + (y + 1)*NPX + x],
+						p[z*NPX*NPX + y*NPX + (x + 1)]) +
+					vol3f(
+						p[(z + 1)*NPX*NPX + (y + 1)*NPX + (x + 1)],
+						p[(z + 1)*NPX*NPX + y*NPX + x],
+						cv,
+						p[z*NPX*NPX + y*NPX + (x + 1)]) +
+					vol3f(
+						p[(z + 1)*NPX*NPX + (y + 1)*NPX + (x + 1)],
+						p[(z + 1)*NPX*NPX + y*NPX + x],
+						p[z*NPX*NPX + (y + 1)*NPX + x],
+						cv) 
+					) /
+					vol3f(
+						p[(z + 1)*NPX*NPX + (y + 1)*NPX + (x + 1)],
+						p[(z + 1)*NPX*NPX + y*NPX + x],
+						p[z*NPX*NPX + (y + 1)*NPX + x],
+						p[z*NPX*NPX + y*NPX + (x + 1)]);
+
+				if (i < 0 || ta < d)
+				{
+					i = (z*NPX*NPX + y*NPX + x) * 2 + 1;
+					d = ta;
+				}
+			}
+		}
+	}
+
+#define S		0.000001f
+
+	pvl[i] = maxf(0, pvl[i] - S);
+
+	x = (i / 2) % NPX;
+	y = (i / 2 / NPX) % NPX;
+	z = (i / 2 / (NPX*NPX));
+	i %= 2;
+
+	for (i = 0; i < 1; ++i)
+	{
+		ta = 0;
+
+		memset(pvf, 0, sizeof(v3f)*NP);
+
+		for (x = 0; x < NPX - 1; ++x)
+		{
+			for (y = 0; y < NPX - 1; ++y)
+			{
+				for (z = 0; z < NPX - 1; ++z)
+				{
+					d = vol3f(
+						p[(z + 1)*NPX*NPX + (y + 1)*NPX + (x + 1)],
+						p[(z + 1)*NPX*NPX + y*NPX + x],
+						p[z*NPX*NPX + (y + 1)*NPX + x],
+						p[z*NPX*NPX + y*NPX + (x + 1)]) /
+						max(0.0000000001f, pvl[(z*NPX*NPX + y*NPX + x) * 2 + 1]);
+
+					fprintf(g_applog, "d%f, %d,%d,%d\r\n", d, x, y, z);
+
+					if (d > ta)
+						ta = d;
+
+					v3fadd(&vv, p[(z + 1)*NPX*NPX + (y + 1)*NPX + (x + 1)], p[(z + 1)*NPX*NPX + y*NPX + x]);
+					v3fadd(&vv, vv, p[z*NPX*NPX + (y + 1)*NPX + x]);
+					v3fadd(&vv, vv, p[z*NPX*NPX + y*NPX + (x + 1)]);
+					v3fmul(&vv, vv, 1.0f / 4.0f);
+
+#define CX ( (z + 1)*NPX*NPX + (y + 1)*NPX + (x + 1) )
+					v3fsub(&dv, vv, p[CX]);
+					v3fmul(&dv, dv, (1.0 - 1.0 / d));
+					v3fadd(&pvf[CX], pvf[CX], dv);
+					fprintf(g_applog, "d%f, p%f,%f,%f\r\n", d, dv.x, dv.y, dv.z);
+#undef CX
+#define CX ( (z + 1)*NPX*NPX + y*NPX + x )
+					v3fsub(&dv, vv, p[CX]);
+					v3fmul(&dv, dv, (1.0 - 1.0 / d));
+					v3fadd(&pvf[CX], pvf[CX], dv);
+					fprintf(g_applog, "d%f, p%f,%f,%f\r\n", d, dv.x, dv.y, dv.z);
+#undef CX
+#define CX ( z*NPX*NPX + (y + 1)*NPX + x )
+					v3fsub(&dv, vv, p[CX]);
+					v3fmul(&dv, dv, (1.0 - 1.0 / d));
+					v3fadd(&pvf[CX], pvf[CX], dv);
+					fprintf(g_applog, "d%f, p%f,%f,%f\r\n", d, dv.x, dv.y, dv.z);
+#undef CX
+#define CX ( z*NPX*NPX + y*NPX + (x + 1) )
+					v3fsub(&dv, vv, p[CX]);
+					v3fmul(&dv, dv, (1.0 - 1.0 / d));
+					v3fadd(&pvf[CX], pvf[CX], dv);
+					fprintf(g_applog, "d%f, p%f,%f,%f\r\n", d, dv.x, dv.y, dv.z);
+#undef CX
+
+
+					d = vol3f(
+						p[z*NPX*NPX + y*NPX + x],
+						p[(z + 1)*NPX*NPX + y*NPX + x],
+						p[z*NPX*NPX + (y + 1)*NPX + x],
+						p[z*NPX*NPX + y*NPX + (x + 1)]) /
+						max(0.0000000001f, pvl[(z*NPX*NPX + y*NPX + x) * 2]);
+
+					fprintf(g_applog, "d%f, %d,%d,%d\r\n", d, x, y, z);
+
+					fflush(g_applog);
+
+					if (d > ta)
+						ta = d;
+
+					v3fadd(&vv, p[z*NPX*NPX + y*NPX + x], p[(z + 1)*NPX*NPX + y*NPX + x]);
+					v3fadd(&vv, vv, p[z*NPX*NPX + (y + 1)*NPX + x]);
+					v3fadd(&vv, vv, p[z*NPX*NPX + y*NPX + (x + 1)]);
+					v3fmul(&vv, vv, 1.0f / 4.0f);
+
+#define CX ( z*NPX*NPX + y*NPX + x )
+					v3fsub(&dv, vv, p[CX]);
+					fprintf(g_applog, "asd %f     %f\r\n", (1.0 - 1.0 / d), mag3f(dv));
+					v3fmul(&dv, dv, (1.0 - 1.0 / d));
+					v3fadd(&pvf[CX], pvf[CX], dv);
+#undef CX
+#define CX ( (z + 1)*NPX*NPX + y*NPX + x )
+					v3fsub(&dv, vv, p[CX]);
+					v3fmul(&dv, dv, (1.0 - 1.0 / d));
+					v3fadd(&pvf[CX], pvf[CX], dv);
+#undef CX
+#define CX ( z*NPX*NPX + (y + 1)*NPX + x )
+					v3fsub(&dv, vv, p[CX]);
+					v3fmul(&dv, dv, (1.0 - 1.0 / d));
+					v3fadd(&pvf[CX], pvf[CX], dv);
+#undef CX
+#define CX ( z*NPX*NPX + y*NPX + (x + 1) )
+					v3fsub(&dv, vv, p[CX]);
+					v3fmul(&dv, dv, (1.0 - 1.0 / d));
+					v3fadd(&pvf[CX], pvf[CX], dv);
+#undef CX
+				}
+			}
+		}
+
+		if (ta <= 0.01f)
+			break;
+
+		for (x = 0; x < NPX; ++x)
+		{
+			for (y = 0; y < NPX; ++y)
+			{
+				for (z = 0; z < NPX; ++z)
+				{
+					v3fadd(&p[z*NPX*NPX + y*NPX + x], p[z*NPX*NPX + y*NPX + x], pvf[z*NPX*NPX + y*NPX + x]);
+
+					fprintf(g_applog, "s %f,%f,%f\r\n", pvf[z*NPX*NPX + y*NPX + x].x, pvf[z*NPX*NPX + y*NPX + x].y, pvf[z*NPX*NPX + y*NPX + x].z);
+				}
+			}
+		}
+	}
+#endif
 
 	//endsh();
 }
