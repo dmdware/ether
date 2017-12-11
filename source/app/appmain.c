@@ -644,7 +644,7 @@ void drawscene(float* proj, float* viewmat, float* modelmat, float* modelviewinv
 						p[z*NPX*NPX + y*NPX + (x + 1)]) /
 						max(0.0000000001f, pvl[(z*NPX*NPX + y*NPX + x) * 2 + 1]);
 
-					fprintf(g_applog, "d%f, %d,%d,%d\r\n", d, x, y, z);
+					fprintf(g_applog, "d%c%f, %d,%d,%d\r\n", (d != 1 ? 'p' : 'n'), d, x, y, z);
 
 					if (d > ta)
 						ta = d;
@@ -687,7 +687,7 @@ void drawscene(float* proj, float* viewmat, float* modelmat, float* modelviewinv
 						p[z*NPX*NPX + y*NPX + (x + 1)]) /
 						max(0.0000000001f, pvl[(z*NPX*NPX + y*NPX + x) * 2]);
 
-					fprintf(g_applog, "d%f, %d,%d,%d\r\n", d, x, y, z);
+					fprintf(g_applog, "d%c%f, %d,%d,%d\r\n", (d != 1 ? 'p' : 'n'), d, x, y, z);
 
 					fflush(g_applog);
 
