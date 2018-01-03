@@ -143,6 +143,7 @@
     <ClInclude Include="..\..\..\source\math\v3i.h" />
     <ClInclude Include="..\..\..\source\math\v4f.h" />
     <ClInclude Include="..\..\..\source\net\net.h" />
+    <ClInclude Include="..\..\..\source\phys\brane.h" />
     <ClInclude Include="..\..\..\source\png\png.h" />
     <ClInclude Include="..\..\..\source\png\pngconf.h" />
     <ClInclude Include="..\..\..\source\png\pngdebug.h" />
@@ -151,8 +152,10 @@
     <ClInclude Include="..\..\..\source\png\pngpriv.h" />
     <ClInclude Include="..\..\..\source\png\pngstruct.h" />
     <ClInclude Include="..\..\..\source\render\anim.h" />
+    <ClInclude Include="..\..\..\source\render\mesh.h" />
     <ClInclude Include="..\..\..\source\render\shader.h" />
     <ClInclude Include="..\..\..\source\render\sprite.h" />
+    <ClInclude Include="..\..\..\source\render\toxy.h" />
     <ClInclude Include="..\..\..\source\sdl\audio\directsound\SDL_directsound.h" />
     <ClInclude Include="..\..\..\source\sdl\audio\disk\SDL_diskaudio.h" />
     <ClInclude Include="..\..\..\source\sdl\audio\dummy\SDL_dummyaudio.h" />
@@ -433,6 +436,7 @@
     <ClCompile Include="..\..\..\source\math\v3i.c" />
     <ClCompile Include="..\..\..\source\math\v4f.c" />
     <ClCompile Include="..\..\..\source\net\net.c" />
+    <ClCompile Include="..\..\..\source\phys\brane.c" />
     <ClCompile Include="..\..\..\source\png\png.c" />
     <ClCompile Include="..\..\..\source\png\pngerror.c" />
     <ClCompile Include="..\..\..\source\png\pngget.c" />
@@ -449,8 +453,10 @@
     <ClCompile Include="..\..\..\source\png\pngwtran.c" />
     <ClCompile Include="..\..\..\source\png\pngwutil.c" />
     <ClCompile Include="..\..\..\source\render\anim.c" />
+    <ClCompile Include="..\..\..\source\render\mesh.c" />
     <ClCompile Include="..\..\..\source\render\shader.c" />
     <ClCompile Include="..\..\..\source\render\sprite.c" />
+    <ClCompile Include="..\..\..\source\render\toxy.c" />
     <ClCompile Include="..\..\..\source\sdl\atomic\SDL_atomic.c" />
     <ClCompile Include="..\..\..\source\sdl\atomic\SDL_spinlock.c" />
     <ClCompile Include="..\..\..\source\sdl\audio\directsound\SDL_directsound.c" />

@@ -13,13 +13,13 @@
 #define SSLOT_WIDTH				4
 #define SSLOT_HEIGHT			5
 #define SSLOT_TEXCOORD0			6
-#define SSLOT_MVP				7
-#define SSLOT_CAMCEN			8
-#define SSLOT_CORNERA			9
-#define SSLOT_CORNERB			10
-#define SSLOT_CORNERC			11
-#define SSLOT_CORNERD			12
-#define SSLOT_RX				13
+#define SSLOT_UP				7
+#define SSLOT_RIGHT				8
+#define SSLOT_VIEW				9
+#define SSLOT_POS				10
+#define SSLOT_FOV				11
+#define SSLOT_NEARD				12
+#define SSLOT_FARD				13
 #define SSLOTS					14
 
 struct glshader
@@ -45,8 +45,7 @@ typedef struct glshader glshader;
 #define SH_ORTHO				0
 #define SH_COLOR2D				1
 #define SH_COLOR3D				2
-#define SH_E					3
-#define SHADERS					4
+#define SHADERS					3
 
 extern glshader g_shader[SHADERS];
 extern signed char g_cursh;

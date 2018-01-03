@@ -12,6 +12,9 @@ struct p3f
 
 typedef struct p3f p3f;
 
+
+float plad(v3f n, float d, v3f p);
+
 #if 0
 //TODO make c
 

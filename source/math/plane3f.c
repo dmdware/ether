@@ -3,6 +3,11 @@
 #include "3dmath.h"
 #include "../sys/utils.h"
 
+float plad(v3f n, float d, v3f p)
+{
+	return dot3f(n, p) + d;
+}
+
 #if 0
 
 p3f::p3f()

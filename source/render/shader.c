@@ -12,7 +12,7 @@
 glshader g_shader[SHADERS];
 signed char g_cursh = 0;
 
-const char *SHTEXT[SHADERS][4]
+const char *SHTEXT [SHADERS][4]
 =
 {
 	/* SH_ORTHO */
@@ -88,127 +88,9 @@ const char *SHTEXT[SHADERS][4]
 {
 "SH_COLOR3D v",
 "SH_COLOR3D f",
-""
-"#version 120\r\n"
-""
-"uniform mat4 mvp;\r\n"
-""
-"uniform vec4 color;\r\n"
-""
-"void main(void)\r\n"
-"{\r\n"
-"	gl_Position = mvp * gl_Vertex;\r\n"
-"	//gl_Position.w = 1;\r\n"
-"	//gl_Position.z = - gl_Position.z;"
-"}\r\n"
-"",
-""
-"#version 120\r\n"
-""
-"uniform vec4 color;"
-""
-"void main(void)"
-"{"
-"	gl_FragColor = color;"
-"	gl_FragColor = vec4(1,1,1,1);"
-"}"
-""
-},
-/* SH_E */
-{
-"SH_E v",
-"SH_E f",
-"#version 120\r\n"
-"varying vec3 outpos;"
-"uniform vec3 cornera, cornerb, cornerc, cornerd;"
-"uniform vec3 camcen;"
-"uniform mat4 mvp;"
-""
-"void main(void)"
-"{"
-"	outpos = gl_Vertex.xyz;"
-"	gl_Position = mvp * gl_Vertex;"
-"}",
-"#version 120											\r\n"\
-"uniform sampler2D texture0;\r\n"
-"uniform sampler2D h0;\r\n"
-"varying vec3 outpos;\r\n"
-"uniform vec3 cornera, cornerb, cornerc, cornerd;\r\n"
-"uniform vec3 camcen;\r\n"
-"uniform float rx;\r\n"
-"vec3 refract(vec3 from, vec3 dp, vec3 cent)\r\n"
-"{\r\n"
-//"	return dp;\r\n"
-#if 0
-"	vec3 gv = cent - from;\r\n"
-"	float g = length(gv) * 2.0 * 6371000.0;\r\n"
-"	gv = gv / length(gv);\r\n"
-//"	vec3 ev = gv * sqrt(2 * 6.67 * (1.0/100000000000.0) * 5.972 * 1000000000000000000000000.0 / length(gv * 6371000.0));\r\n"
-"	vec3 ev = gv * sqrt(2 * 6.67 * (1.0/100000000000.0) * 5.972 * 1000000000000000000000000.0 / length(g));\r\n"
-"	g = 1.0 / (g*g);\r\n"
-"	//dp = dp / g;\r\n"
-//"	vec3 to = ( dp * 3000000.0 - gv * ev ) / 300000.0;\r\n"
-"	vec3 to = ( dp * 2.0 * 6371000.0 * 3000000.0 + g * ev ) / 3000000.0;\r\n"
-"	return to - from;\r\n"
-#endif
-"	//return ((from+dp-cent)/1.00001)-from+cent;\r\n"
-"	float p = ((0.5/150.0)/0.5*6371)/300000.0;"
-//"	float p = ((0.5/150.0)/0.5*6371*109)/300000.0;"
-//"	return (cent-from-dp)/length(cent-from-dp)*sqrt(2 * 6.67 * 10000 * 5.9722 / (length(from+dp-cent)/0.5*6371))*(0.5/6371)*p+dp;\r\n"
-"	return (cent-from-dp)/length(cent-from-dp)*sqrt(2 * 6.67 * 100000000 * 5.9722 / (1*length(from+dp-cent)/0.5*6371))*(0.5/6371)*p+dp;\r\n"
-//"	return (cent-from-dp)/length(cent-from-dp)*sqrt(2 * 6.67 * 10000 * 333000 * 5.9722 / (1*length(from+dp-cent)/0.5*6371*109))*(0.5/6371/109)*p+dp;\r\n"
-"}\r\n"
-"vec4 trylook(vec3 from, vec3 to, vec3 cent)\r\n"
-"{\r\n"
-"	float fd = length(cent - from);\r\n"
-"	float td = length(cent - to);\r\n"
-"	if(/* fd >= 0.9 && td <= 1.09 && */ fd >= td && td <= 1.0/2.0)\r\n"
-"	{\r\n"
-"		vec4 color;\r\n"
-"		vec2 tc;\r\n"
-"		from = from - cent;\r\n"
-"		to = to - cent;\r\n"
-"		vec3 ft = (from + to) / 2.0; ft = to;\r\n"
-"		tc.y = 0.5 - ft.y - 0;\r\n"
-"		tc.x = -atan(ft.z, ft.x)/2/3.14159+rx;\r\n"
-"		//tc = vec2(0.5,0.5);\r\n"
-"		color = texture2D(texture0, tc);\r\n"
-"		//color.r = color.w = 1;\r\n"
-"		//color.g = fd;\r\n"
-"		return color;\r\n"
-"	}\r\n"
-"	return vec4(0,0,0,0);\r\n"
-"}\r\n"
-"void main (void)\r\n"
-"{\r\n"
-"	//gl_FragColor = vec4(1,1,1,1);\r\n"
-"	//return;\r\n"
-"	vec3 cent; cent = vec3(cornera.xyz + cornerc.xyz) / 2.0;\r\n"
-"	//cent.z *= -1;\r\n"
-"	vec3 to = outpos.xyz;\r\n"
-"	vec3 from = camcen;\r\n"
-"	vec3 dp = to - from;\r\n"
-"	dp = dp / length(dp*150);\r\n"
-"	float i;\r\n"
-"	vec4 outcolor = vec4(0,0,0,0);\r\n"
-"	for(i=0; i<300; i+=1)\r\n"
-"	{\r\n"
-"		dp = refract(from, dp, cent);\r\n"
-"		vec4 color = trylook(from, from + dp, cent);\r\n"
-"		//color.w = color.r = 1;"
-"		//if(color.w > 0.0)\r\n"
-"		//{\r\n"
-"		outcolor = outcolor + color * max(0, color.w - outcolor.w);\r\n"
-"		//gl_FragColor = color;\r\n"
-"		//gl_FragColor = vec4(outpos * -1, 1);"
-"		//gl_FragDepth = float(i) / 300.0;\r\n"
-"		//return;\r\n"
-"		//}\r\n"
-"		from = from + dp;\r\n"
-"		dp = dp / length(dp*150);\r\n"
-"	}\r\n"
-"	gl_FragColor = outcolor;\r\n"
-"}"
+#include "../shaders/color3d.vert"
+,
+#include "../shaders/color3d.frag"
 }
 };
 
@@ -318,17 +200,17 @@ void inglsl()
 #ifndef PLAT_MAC
 	glewExperimental = GL_TRUE;
 	glewError = glewInit();
-	if( glewError != GLEW_OK )
+	if (glewError != GLEW_OK)
 	{
-		errm("Error initializing GLEW!", (const char*)glewGetErrorString( glewError ));
+		errm("Error initializing GLEW!", (const char*)glewGetErrorString(glewError));
 		return;
 	}
 #endif
 
 #ifdef __glew_h__
-	if( !GLEW_VERSION_1_4 )
+	if (!GLEW_VERSION_1_4)
 	{
-		errm("Error", "OpenGL 1.4 not supported!\n" );
+		errm("Error", "OpenGL 1.4 not supported!\n");
 		goto quit;
 	}
 #endif
@@ -341,7 +223,7 @@ void inglsl()
 
 #if !defined( PLAT_MAC ) && !defined( PLAT_IOS )
 #ifdef GLDEBUG
-	if(!strstr(glexts, "GL_ARB_debug_output"))
+	if (!strstr(glexts, "GL_ARB_debug_output"))
 	{
 		fprintf(g_applog, "GL_ARB_debug_output extension not supported\r\n");
 	}
@@ -354,13 +236,13 @@ void inglsl()
 #endif
 #endif
 
-	if(!strstr(glexts, "GL_ARB_shader_objects"))
+	if (!strstr(glexts, "GL_ARB_shader_objects"))
 	{
 		errm("Error", "GL_ARB_shader_objects extension not supported!");
 		goto quit;
 	}
 
-	if(!strstr(glexts, "GL_ARB_shading_language_100"))
+	if (!strstr(glexts, "GL_ARB_shading_language_100"))
 	{
 		errm("Error", "GL_ARB_shading_language_100 extension not supported!");
 		goto quit;
@@ -370,7 +252,7 @@ void inglsl()
 	glver(&major, &minor);
 
 #ifndef PLAT_MOBILE
-	if(major < 1 || ( major == 1 && minor < 4 ))
+	if (major < 1 || (major == 1 && minor < 4))
 	{
 		errm("Error", "OpenGL 1.4 is not supported!");
 		goto quit;
@@ -386,9 +268,6 @@ void inglsl()
 	loadsh(SH_COLOR3D, SHTEXT[SH_COLOR3D][0], SHTEXT[SH_COLOR3D][1], 
 		SHTEXT[SH_COLOR3D][2], SHTEXT[SH_COLOR3D][3], 
 		dfalse, dfalse);
-	loadsh(SH_E, SHTEXT[SH_E][0], SHTEXT[SH_E][1],
-		SHTEXT[SH_E][2], SHTEXT[SH_E][3],
-		dfalse, dfalse);
 
 	return;
 
@@ -396,22 +275,23 @@ quit:
 	g_quit = dtrue;
 }
 
-void loadsh(int shader, 
-			const char* namev,
-			const char* namef,
-			const char* strv, 
-			const char* strf, 
-			dbool hastexc, 
-			dbool hasnorm)
+
+void loadsh(int shader,
+	const char* namev,
+	const char* namef,
+	const char* strv,
+	const char* strf,
+	dbool hastexc,
+	dbool hasnorm)
 {
 	glshader* s;
 	GLint loglen;
 	GLchar* log;
 	GLint status;
 
-	s = g_shader+shader;
+	s = g_shader + shader;
 
-	if(s->vertshader || s->fragshader || s->program)
+	if (s->vertshader || s->fragshader || s->program)
 		shfree(s);
 
 	s->hastexc = hastexc;
@@ -425,11 +305,11 @@ void loadsh(int shader,
 	glCompileShader(s->vertshader);
 
 	glGetShaderiv(s->vertshader, GL_INFO_LOG_LENGTH, &loglen);
-	if(loglen > 0)
+	if (loglen > 0)
 	{
 		log = (GLchar*)malloc(loglen);
 
-		if(NOMEM(log))
+		if (NOMEM(log))
 			return;
 
 		glGetShaderInfoLog(s->vertshader, loglen, &loglen, log);
@@ -440,11 +320,11 @@ void loadsh(int shader,
 
 	glCompileShader(s->fragshader);
 	glGetShaderiv(s->fragshader, GL_INFO_LOG_LENGTH, &loglen);
-	if(loglen > 0)
+	if (loglen > 0)
 	{
 		log = (GLchar*)malloc(loglen);
 
-		if(NOMEM(log))
+		if (NOMEM(log))
 			return;
 
 		glGetShaderInfoLog(s->fragshader, loglen, &loglen, log);
@@ -493,13 +373,13 @@ void loadsh(int shader,
 	shmu(s, SSLOT_COLOR, "color");
 	shmu(s, SSLOT_WIDTH, "width");
 	shmu(s, SSLOT_HEIGHT, "height");
-	shmu(s, SSLOT_MVP, "mvp");
-	shmu(s, SSLOT_CAMCEN, "camcen");
-	shmu(s, SSLOT_CORNERA, "cornera");
-	shmu(s, SSLOT_CORNERB, "cornerb");
-	shmu(s, SSLOT_CORNERC, "cornerc");
-	shmu(s, SSLOT_CORNERD, "cornerd");
-	shmu(s, SSLOT_RX, "rx");
+	shmu(s, SSLOT_UP, "up");
+	shmu(s, SSLOT_RIGHT, "right");
+	shmu(s, SSLOT_VIEW, "view");
+	shmu(s, SSLOT_POS, "pos");
+	shmu(s, SSLOT_FOV, "fov");
+	shmu(s, SSLOT_NEARD, "neard");
+	shmu(s, SSLOT_FARD, "fard");
 }
 
 void usesh(int shader)
